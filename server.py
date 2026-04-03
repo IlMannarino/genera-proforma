@@ -26,6 +26,28 @@ STORES_FILE  = os.path.join(BASE_DIR,  'stores.json')
 _counter_lock = threading.Lock()
 
 
+# ─── CODICI SDI ─────────────────────────────────────────────
+SDI_CODES = [
+    '0G6TBBX','0KDMVIB','10ZKECO','2LCMINU','2R4GTO8','38P86EY','3G3OPYL',
+    '3RB98ZT','3ZJY534','4ADX8V9','596NUAX','5P3UNVR','5RUO82D','5W4A8J1',
+    '66OZKW1','6EWHWLT','6JXPS2J','6RB0OU9','7035UR5','7HE8RN5','8CQGKGJ',
+    'A4707H7','AO3AEUZ','AU7YEU4','B66HAMY','BA6ET11','BLY9JDQ','BY5KTZZ',
+    'C1QQYZR','CEORGIG','DUDU0GE','DXEBYTP','E06UCUD','E2VWRNU','EH1R83N',
+    'G1XGCBG','G4AI1U8','G7Q6SPJ','G9HZJRW','G9YK3BM','GR2P7ZP','H348Q01',
+    'HHBD9AK','HQSIB42','I347Y6N','I6VXTJA','ISHDUAE','ITH9EQH','J6URRTW',
+    'JC7P1DW','JHBM40P','K0ROACV','KBRM7PS','KGVVJ2H','KJSRCTG','KRRH6B9',
+    'KUPCRMI','LX4UQQ5','M5ITOJA','M5UXCR1','M62SGNV','MJ1OYNU','MJEGRSK',
+    'MRCC2DY','MZO2A0U','N3HJJJI','N92GLON','N9KM26R','NKNH5UQ','O8L2VB7',
+    'OCCDHSV','P43TKPP','P4IUPYH','P62QHVQ','P83CKOC','PAXCCYU','PPX7BLB',
+    'PUR1DAR','PXQYICS','PZIJH2V','QDZCM9N','QLDR2VY','QULXG4S','QYISEC3',
+    'RGBDW7A','RN5Y3PI','RNMN7NC','ROINDUX','RTVLCR1','RWB54P8','RYRNP0U',
+    'SA0PL6Q','SKUA8Y6','SN4CSRI','SNT102H','SU1UTOG','SU9YNJA','SUBM70N',
+    'SZLUBAI','T04ZHR3','T9K4ZHO','TPICRCA','TRS3OH9','TRTSWMZ','TULURSB',
+    'UE2LXTM','UNI0W8G','URSWIEX','USA39RA','USAL8PV','W4KYJ8V','W7YVJK9',
+    'WH2KO8I','WHP7LTE','WNK4HCP','WP7SE2Q','WY7PJ6K','X2PH38J','X46AXNR',
+    'XIT6IP5','XL13LG4','XMXAUP4','XWJKNZD','Y4BUAV4','YRXHCLN','ZCK6XHR',
+]
+
 # ─── STORES ─────────────────────────────────────────────────
 def load_stores():
     try:
@@ -75,13 +97,13 @@ def today_slash():
 
 def calc_importi(num_coperti, prezzo_persona):
     """
-    Calcolo:  imponibile = num_coperti × prezzo_persona
-              iva        = imponibile × 10%
-              totale     = imponibile + iva
+    Calcolo:  totale     = num_coperti × prezzo_persona  (prezzo IVA inclusa)
+              imponibile = totale / 1.10
+              iva        = totale - imponibile
     """
-    imponibile = round(int(num_coperti) * float(prezzo_persona), 2)
-    iva        = round(imponibile * 0.10, 2)
-    totale     = round(imponibile + iva, 2)
+    totale     = round(int(num_coperti) * float(prezzo_persona), 2)
+    imponibile = round(totale / 1.10, 2)
+    iva        = round(totale - imponibile, 2)
     return imponibile, iva, totale
 
 
@@ -102,7 +124,24 @@ def generate_pdf(fd, numero):
 
     num_coperti    = int(fd.get('num_coperti', 1))
     prezzo_persona = round(float(fd.get('prezzo_persona', 0)), 2)
-    imponibile, iva, totale = calc_importi(num_coperti, prezzo_persona)
+    imp1, iva1, tot1 = calc_importi(num_coperti, prezzo_persona)
+
+    num_coperti_2    = fd.get('num_coperti_2', '').strip()
+    prezzo_persona_2 = fd.get('prezzo_persona_2', '').strip()
+    has_row2 = bool(num_coperti_2 and prezzo_persona_2)
+    if has_row2:
+        num_coperti_2    = int(num_coperti_2)
+        prezzo_persona_2 = round(float(prezzo_persona_2), 2)
+        imp2, iva2, tot2 = calc_importi(num_coperti_2, prezzo_persona_2)
+    else:
+        imp2 = iva2 = tot2 = 0.0
+
+    imponibile = round(imp1 + imp2, 2)
+    iva        = round(iva1 + iva2, 2)
+    totale     = round(tot1 + tot2, 2)
+
+    acconto = round(float(fd.get('acconto', 0) or 0), 2)
+    saldo   = round(totale - acconto, 2)
 
     today     = today_slash()
     data_cena = fmt_date_dot(fd.get('data_cena', ''))
@@ -151,11 +190,11 @@ def generate_pdf(fd, numero):
 
     # Intestazione azienda
     txt(mL, y, 'IL MANNARINO SRL', size=16, bold=True); y -= 6*mm
-    txt(mL, y, 'VIA CASTELFIDARDO, 1', size=10);        y -= 5*mm
-    txt(mL, y, '20900 MONZA MB', size=10);              y -= 4.5*mm
+    txt(mL, y, 'VIALE GIACOMO MATTEOTTI 14/D', size=10); y -= 5*mm
+    txt(mL, y, '20095 CUSANO MILANINO (MI)', size=10);  y -= 4.5*mm
     txt(mL, y, 'Codice fiscale 10747300969 - Partita IVA 10747300969', size=7.5); y -= 3.8*mm
     txt(mL, y, 'Iscritta presso il registro delle Imprese con il n\u00b0 10747300969', size=7.5); y -= 3.8*mm
-    txt(mL, y, 'Capitale sociale: \u20ac 250.000,00 di cui 250.000,00 i.v.', size=7.5); y -= 3.5*mm
+    txt(mL, y, 'Capitale sociale: \u20ac 263.500,00 di cui \u20ac 263.500,00 i.v.', size=7.5); y -= 3.5*mm
 
     hline(y, lw=0.6); y -= 5*mm
 
@@ -170,6 +209,7 @@ def generate_pdf(fd, numero):
         'Il presente documento non ha rilevanza ai fini IVA',     size=6.5, italic=True, align='center')
     txt(mL + lw_np/2, y - bh_np/2 - 4.5*mm,
         'All\u2019atto del pagamento sar\u00e0 emessa regolare fattura', size=6.5, italic=True, align='center')
+
 
     rx   = mL + lw_np
     rrow = bh_np / 3
@@ -189,6 +229,11 @@ def generate_pdf(fd, numero):
     box(mL,      y - dest_h, ld, dest_h)
     box(mL + ld, y - dest_h, rd, dest_h)
 
+    modifica_num = fd.get('modifica_proforma', '').strip()
+    if modifica_num:
+        txt(mL + ld/2, y - dest_h/2,
+            f'Modifica della proforma N\u00b0 {modifica_num}', size=9, bold=True, align='center')
+
     dx = mL + ld + 2*mm
     txt(dx, y - 4*mm,    'Destinatario', size=7.5)
     txt(dx, y - 9*mm,    fd.get('ragione_sociale', ''), size=10, bold=True)
@@ -199,19 +244,22 @@ def generate_pdf(fd, numero):
 
     y -= dest_h
 
-    # ── COD. CLIENTE / VALUTA / P.IVA / CF ──
-    det_h  = 11 * mm
-    col_w  = cW / 4
-    for i, (lbl, val) in enumerate([
+    # ── COD. CLIENTE / VALUTA / P.IVA / CODICE SDI / CF ──
+    det_h   = 11 * mm
+    det_cols = [35*mm, 13*mm, 42*mm, 38*mm, cW - 35*mm - 13*mm - 42*mm - 38*mm]
+    det_data = [
         ('Cod. cliente',  fd.get('codice_cliente', '')),
         ('Valuta',        'EUR'),
         ('P.Iva',         fd.get('partita_iva', '')),
+        ('Codice SDI',    fd.get('codice_sdi', '')),
         ('Codice fiscale', fd.get('partita_iva', '')),
-    ]):
-        x = mL + i * col_w
-        box(x, y - det_h, col_w, det_h)
+    ]
+    x = mL
+    for cw, (lbl, val) in zip(det_cols, det_data):
+        box(x, y - det_h, cw, det_h)
         txt(x + 1.5*mm, y - 4*mm, lbl, size=7.5, bold=True)
         txt(x + 1.5*mm, y - 9*mm, val, size=9)
+        x += cw
 
     y -= det_h
 
@@ -233,8 +281,34 @@ def generate_pdf(fd, numero):
     for _, cw, _ in li_cols:
         col_x.append(col_x[-1] + cw)
 
-    hdr_h = 6  * mm
-    row_h = 12 * mm
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    hdr_h = 6 * mm
+
+    desc      = f'Proforma per men\u00f9 del {data_cena}'
+    store     = fd.get('nome_store', '')
+    desc_maxw = li_cols[1][1] - 3*mm
+
+    # Calcola se lo store fa wrap → altezza riga dinamica
+    store_line1 = store_line2 = ''
+    if store:
+        if stringWidth(store, 'Helvetica', 8.5) <= desc_maxw:
+            store_line1 = store
+        else:
+            mid = store.find('\u2013')
+            if mid == -1:
+                mid = store.rfind(' ', 0, len(store) // 2 + 15)
+            if mid != -1:
+                store_line1 = store[:mid].strip()
+                store_line2 = store[mid+1:].strip()
+            else:
+                store_line1 = store
+
+    if has_row2 and store_line2:
+        row_h = 20 * mm
+    elif has_row2 or store_line2:
+        row_h = 16 * mm
+    else:
+        row_h = 12 * mm
 
     # Header grigio
     box(mL, y - hdr_h, cW, hdr_h, fill=GRAY)
@@ -257,22 +331,25 @@ def generate_pdf(fd, numero):
     for xp in col_x[1:-1]:
         vline(xp, y, y - row_h)
 
-    desc  = f'Proforma per men\u00f9 del {data_cena}'
-    store = fd.get('nome_store', '')
     txt(col_x[1] + 1.5*mm, y - 4.5*mm, desc, size=8.5)
-    if store:
-        txt(col_x[1] + 1.5*mm, y - 9*mm, store, size=8.5)
+    if store_line1:
+        txt(col_x[1] + 1.5*mm, y - 9*mm, store_line1, size=8.5)
+    if store_line2:
+        txt(col_x[1] + 1.5*mm, y - 13*mm, store_line2, size=8.5)
 
-    row_mid = y - row_h / 2 + 1.5*mm
+    r1_y = y - 5*mm
+    r2_y = y - 10*mm if has_row2 else None
 
-    # Q.tà
-    txt(col_x[3] + li_cols[3][1] - 1.5*mm, row_mid, str(num_coperti),       size=9, align='right')
-    # Prezzo unit.
-    txt(col_x[4] + li_cols[4][1] - 1.5*mm, row_mid, fmt_it(prezzo_persona), size=9, align='right')
-    # Importo (imponibile)
-    txt(col_x[6] + li_cols[6][1] - 1.5*mm, row_mid, fmt_it(imponibile),     size=9, align='right')
-    # Codice IVA
-    txt(col_x[7] + 1.5*mm,                 row_mid, 'I10',                  size=9)
+    txt(col_x[3] + li_cols[3][1] - 1.5*mm, r1_y, str(num_coperti),       size=9, align='right')
+    txt(col_x[4] + li_cols[4][1] - 1.5*mm, r1_y, fmt_it(prezzo_persona), size=9, align='right')
+    txt(col_x[6] + li_cols[6][1] - 1.5*mm, r1_y, fmt_it(imp1),           size=9, align='right')
+    txt(col_x[7] + 1.5*mm,                 r1_y, 'I10',                  size=9)
+
+    if has_row2:
+        txt(col_x[3] + li_cols[3][1] - 1.5*mm, r2_y, str(num_coperti_2),    size=9, align='right')
+        txt(col_x[4] + li_cols[4][1] - 1.5*mm, r2_y, fmt_it(prezzo_persona_2), size=9, align='right')
+        txt(col_x[6] + li_cols[6][1] - 1.5*mm, r2_y, fmt_it(imp2),          size=9, align='right')
+        txt(col_x[7] + 1.5*mm,                 r2_y, 'I10',                 size=9)
 
     y -= row_h
 
@@ -296,9 +373,7 @@ def generate_pdf(fd, numero):
 
     bx = mL + cW * pay_ratios[0] + 1.5*mm
     txt(bx, y - 4*mm,    'Banca d\u2019appoggio', size=7.5, bold=True)
-    txt(bx, y - 8.5*mm,  'BANCA DI CREDITO COOPERATIVO DI CARATE', size=7.5)
-    txt(bx, y - 12.5*mm, 'BRIANZA SCRI - CIN Z ABI 08440 CAB 20400 C/c', size=7.5)
-    txt(bx, y - 16.5*mm, '000000281974', size=7.5)
+    txt(bx, y - 8.5*mm,  'UNICREDIT SPA', size=7.5)
 
     txt(mL + cW*(pay_ratios[0]+pay_ratios[1]) + 1.5*mm, y - 4*mm, 'Banca domiciliataria', size=7.5, bold=True)
 
@@ -309,8 +384,8 @@ def generate_pdf(fd, numero):
     iban_split = cW * 0.72
     box(mL,               y - iban_h, iban_split,      iban_h)
     box(mL + iban_split,  y - iban_h, cW - iban_split, iban_h)
-    txt(mL + 1.5*mm,            y - 3.8*mm, 'IBAN: IT17Z0844020400000000281974', size=8.5, bold=True)
-    txt(mL + iban_split + 1.5*mm, y - 3.8*mm, 'SWIFT:', size=8.5)
+    txt(mL + 1.5*mm,            y - 3.8*mm, 'IBAN: IT79I0200820400000107322311', size=8.5, bold=True)
+    txt(mL + iban_split + 1.5*mm, y - 3.8*mm, 'SWIFT: UNCRITM1350', size=8.5)
     y -= iban_h
 
     # Scadenze header
@@ -321,16 +396,21 @@ def generate_pdf(fd, numero):
 
     sc_row_h = 5.5 * mm
     sc_cols  = [0.28, 0.48, 0.24]
-    x = mL
-    for r in sc_cols:
-        box(x, y - sc_row_h, cW * r, sc_row_h)
-        x += cW * r
 
-    txt(mL + 1.5*mm, y - 3.8*mm, today, size=8.5)
-    txt(mL + cW * sc_cols[0] + 1.5*mm, y - 3.8*mm, 'Bonifico bancario', size=8.5)
-    txt(mL + cW * (sc_cols[0]+sc_cols[1]) + cW*sc_cols[2] - 1.5*mm,
-        y - 3.8*mm, fmt_it(totale), size=8.5, align='right')
-    y -= sc_row_h
+    sc_righe = [(data_cena, 'Acconto', acconto), (data_cena, 'Saldo', saldo)] \
+               if acconto > 0 else \
+               [(data_cena, 'Bonifico bancario', totale)]
+
+    for sc_data, sc_desc, sc_imp in sc_righe:
+        x = mL
+        for r in sc_cols:
+            box(x, y - sc_row_h, cW * r, sc_row_h)
+            x += cW * r
+        txt(mL + 1.5*mm, y - 3.8*mm, sc_data, size=8.5)
+        txt(mL + cW * sc_cols[0] + 1.5*mm, y - 3.8*mm, sc_desc, size=8.5)
+        txt(mL + cW * (sc_cols[0]+sc_cols[1]) + cW*sc_cols[2] - 1.5*mm,
+            y - 3.8*mm, fmt_it(sc_imp), size=8.5, align='right')
+        y -= sc_row_h
 
     # ── IVA ──
     iva_hdr_h = 5*mm
@@ -380,7 +460,7 @@ def generate_pdf(fd, numero):
         ('Spese anticipate','0,00','Altre spese','0,00','Spese di trasporto','0,00'),
         ('','','','','Totale documento', fmt_it(totale)),
         ('N\u00b0 colli','0','Peso Kg','0,00','Sconti','0,00'),
-        ('Acconti','0,00','Ritenuta','','Totale da pagare', fmt_it(totale)),
+        ('Acconti', fmt_it(acconto) if acconto > 0 else '0,00', 'Ritenuta','','Totale da pagare', fmt_it(saldo if acconto > 0 else totale)),
     ]
 
     for row_data in tot_rows:
@@ -520,6 +600,24 @@ input.db-fill{background:#fdf8ee;border-color:#e8d5a0;color:#555}
       <label>Email Azienda</label>
       <input type="email" name="email_azienda" id="email_azienda" placeholder="es. info@azienda.it">
     </div>
+    <div class="field">
+      <label>Codice SDI *</label>
+      <select name="codice_sdi" id="codice_sdi" required>
+        <option value="">Seleziona codice SDI&hellip;</option>
+        {% for code in sdi_codes %}
+        <option value="{{ code }}">{{ code }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- ── MODIFICA PROFORMA ── -->
+    <div class="sec">Modifica Proforma</div>
+    <div class="field">
+      <label>Sostituisce proforma N&#176;</label>
+      <input type="number" name="modifica_proforma" id="modifica_proforma"
+             min="1" step="1" placeholder="Lascia vuoto se &egrave; una nuova proforma">
+      <div class="hint">Compilare solo se questa proforma sostituisce una precedente</div>
+    </div>
 
     <!-- ── DETTAGLI EVENTO ── -->
     <div class="sec">Dettagli Evento</div>
@@ -548,27 +646,55 @@ input.db-fill{background:#fdf8ee;border-color:#e8d5a0;color:#555}
     </div>
 
     <div class="field">
-      <label>Prezzo per Persona &#8364; (IVA esclusa) *</label>
+      <label>Prezzo per Persona &#8364; (IVA inclusa) *</label>
       <input type="number" name="prezzo_persona" id="prezzo_persona"
              step="0.01" min="0.01" required placeholder="es. 34.55"
+             oninput="aggiornaCalcolo()">
+    </div>
+
+    <div class="g2">
+      <div class="field">
+        <label>N&#176; Coperti 2</label>
+        <input type="number" name="num_coperti_2" id="num_coperti_2"
+               min="1" step="1" placeholder="opzionale"
+               oninput="aggiornaCalcolo()">
+      </div>
+      <div class="field">
+        <label>Prezzo per Persona 2 &#8364; (IVA inclusa)</label>
+        <input type="number" name="prezzo_persona_2" id="prezzo_persona_2"
+               step="0.01" min="0.01" placeholder="opzionale"
+               oninput="aggiornaCalcolo()">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Acconto &#8364; (opzionale)</label>
+      <input type="number" name="acconto" id="acconto"
+             step="0.01" min="0.01" placeholder="Lascia vuoto se non c&#39;&egrave; acconto"
              oninput="aggiornaCalcolo()">
     </div>
 
     <!-- ── PREVIEW CALCOLO ── -->
     <div class="calc-box">
       <div class="calc-row">
-        <span class="lbl">Imponibile
-          (<span id="cp_cov">0</span> coperti &#215; &#8364;<span id="cp_pr">0,00</span>)
-        </span>
-        <span class="val" id="cp_imp">&#8364; 0,00</span>
+        <span class="lbl">Totale IVA inclusa</span>
+        <span class="val" id="cp_tot">&#8364; 0,00</span>
       </div>
       <div class="calc-row">
-        <span class="lbl">IVA 10%</span>
-        <span class="val" id="cp_iva">&#8364; 0,00</span>
+        <span class="lbl">di cui Imponibile</span>
+        <span class="val" id="cp_imp">&#8364; 0,00</span>
       </div>
       <div class="calc-row total-row">
-        <span class="lbl">Totale da pagare</span>
-        <span class="val" id="cp_tot">&#8364; 0,00</span>
+        <span class="lbl">di cui IVA 10%</span>
+        <span class="val" id="cp_iva">&#8364; 0,00</span>
+      </div>
+      <div class="calc-row" id="row_acconto" style="display:none;border-top:1px solid #e0c870;margin-top:8px;padding-top:10px">
+        <span class="lbl">Acconto</span>
+        <span class="val" id="cp_acc">&#8364; 0,00</span>
+      </div>
+      <div class="calc-row total-row" id="row_saldo" style="display:none">
+        <span class="lbl">Saldo da pagare</span>
+        <span class="val" id="cp_sal">&#8364; 0,00</span>
       </div>
     </div>
 
@@ -653,16 +779,25 @@ function fmtEu(n){
 }
 
 function aggiornaCalcolo(){
-  var cov = parseInt(document.getElementById('num_coperti').value)    || 0;
+  var cov = parseInt(document.getElementById('num_coperti').value)     || 0;
   var pr  = parseFloat(document.getElementById('prezzo_persona').value) || 0;
-  var imp = Math.round(cov * pr * 100) / 100;
-  var iva = Math.round(imp * 0.10 * 100) / 100;
-  var tot = Math.round((imp + iva) * 100) / 100;
-  document.getElementById('cp_cov').textContent = cov;
-  document.getElementById('cp_pr').textContent  = fmtEu(pr);
+  var cov2 = parseInt(document.getElementById('num_coperti_2').value)   || 0;
+  var pr2  = parseFloat(document.getElementById('prezzo_persona_2').value) || 0;
+  var acc = parseFloat(document.getElementById('acconto').value)        || 0;
+  var tot1 = Math.round(cov * pr * 100) / 100;
+  var tot2 = Math.round(cov2 * pr2 * 100) / 100;
+  var tot  = Math.round((tot1 + tot2) * 100) / 100;
+  var imp = Math.round(tot / 1.10 * 100) / 100;
+  var iva = Math.round((tot - imp) * 100) / 100;
+  var sal = Math.round((tot - acc) * 100) / 100;
+  document.getElementById('cp_tot').textContent = '\u20ac ' + fmtEu(tot);
   document.getElementById('cp_imp').textContent = '\u20ac ' + fmtEu(imp);
   document.getElementById('cp_iva').textContent = '\u20ac ' + fmtEu(iva);
-  document.getElementById('cp_tot').textContent = '\u20ac ' + fmtEu(tot);
+  var showAcc = acc > 0;
+  document.getElementById('row_acconto').style.display = showAcc ? 'flex' : 'none';
+  document.getElementById('row_saldo').style.display   = showAcc ? 'flex' : 'none';
+  document.getElementById('cp_acc').textContent = '\u20ac ' + fmtEu(acc);
+  document.getElementById('cp_sal').textContent = '\u20ac ' + fmtEu(sal);
 }
 
 // ── Genera documento ─────────────────────────────────────
@@ -703,7 +838,8 @@ async function genera(){
 def index():
     return render_template_string(HTML,
                                   next_num=peek_next_number(),
-                                  stores=load_stores())
+                                  stores=load_stores(),
+                                  sdi_codes=SDI_CODES)
 
 
 @app.route('/clienti')
