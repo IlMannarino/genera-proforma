@@ -745,7 +745,7 @@ async function searchCliente(q){
 
 function selezionaCliente(idx){
   var cl = _acData[idx];
-  var campi = ['ragione_sociale','indirizzo','citta','partita_iva','codice_cliente','email_azienda'];
+  var campi = ['ragione_sociale','indirizzo','citta','partita_iva','codice_sdi','codice_cliente','email_azienda'];
   campi.forEach(function(f){
     var el = document.getElementById(f);
     if(el){ el.value = cl[f] || ''; el.classList.add('db-fill'); }
@@ -756,7 +756,7 @@ function selezionaCliente(idx){
 }
 
 function resetCliente(){
-  var campi = ['ragione_sociale','indirizzo','citta','partita_iva','codice_cliente','email_azienda'];
+  var campi = ['ragione_sociale','indirizzo','citta','partita_iva','codice_sdi','codice_cliente','email_azienda'];
   campi.forEach(function(f){
     var el = document.getElementById(f);
     if(el){ el.value = ''; el.classList.remove('db-fill'); }
