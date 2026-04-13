@@ -345,12 +345,15 @@ def generate_pdf(fd, numero):
             r1_y = y - 9*mm
             r2_y = y - 13.5*mm
     else:
-        txt(col_x[1] + 1.5*mm, y - 4.5*mm, desc, size=8.5)
+        # Store prima, poi data
         if store_line1:
-            txt(col_x[1] + 1.5*mm, y - 9*mm, store_line1, size=8.5)
+            txt(col_x[1] + 1.5*mm, y - 4.5*mm, store_line1, size=8.5)
         if store_line2:
-            txt(col_x[1] + 1.5*mm, y - 13*mm, store_line2, size=8.5)
-        r1_y = y - 5*mm
+            txt(col_x[1] + 1.5*mm, y - 9*mm,  store_line2, size=8.5)
+            txt(col_x[1] + 1.5*mm, y - 13*mm, desc,        size=8.5)
+        else:
+            txt(col_x[1] + 1.5*mm, y - 9*mm, desc, size=8.5)
+        r1_y = y - 9*mm
         r2_y = None
 
     txt(col_x[3] + li_cols[3][1] - 1.5*mm, r1_y, str(num_coperti),       size=9, align='right')
