@@ -60,7 +60,7 @@ def load_stores():
 # ─── COUNTER (thread-safe) ──────────────────────────────────
 def get_next_number():
     with _counter_lock:
-        data = {'current': 35}
+        data = {'current': 29}
         if os.path.exists(COUNTER_FILE):
             with open(COUNTER_FILE) as f:
                 data = json.load(f)
@@ -72,7 +72,7 @@ def get_next_number():
 
 def peek_next_number():
     with _counter_lock:
-        data = {'current': 35}
+        data = {'current': 29}
         if os.path.exists(COUNTER_FILE):
             with open(COUNTER_FILE) as f:
                 data = json.load(f)
