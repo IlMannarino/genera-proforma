@@ -413,7 +413,7 @@ def generate_pdf(fd, numero):
     sc_row_h = 5.5 * mm
     sc_cols  = [0.28, 0.48, 0.24]
 
-    sc_righe = [(today, 'Acconto', acconto), (data_cena, 'Saldo', saldo)] \
+    sc_righe = [('', 'Acconto', acconto), (data_cena, 'Saldo', saldo)] \
                if acconto > 0 else \
                [(data_cena, 'Bonifico bancario', totale)]
 
@@ -659,7 +659,7 @@ input.db-fill{background:#fdf8ee;border-color:#e8d5a0;color:#555}
     <div class="g2">
       <div class="field">
         <label>Data della Cena *</label>
-        <input type="date" name="data_cena" required>
+        <input type="date" name="data_cena" id="data_cena" required>
       </div>
       <div class="field">
         <label>N&#176; Coperti *</label>
@@ -801,6 +801,19 @@ function esc(s){
 function fmtEu(n){
   return n.toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
+
+// Limita data cena a ±4 giorni da oggi
+(function(){
+  var el = document.getElementById('data_cena');
+  var today = new Date();
+  var fmt = function(d){
+    return d.toISOString().split('T')[0];
+  };
+  var min = new Date(today); min.setDate(today.getDate() - 4);
+  var max = new Date(today); max.setDate(today.getDate() + 4);
+  el.min = fmt(min);
+  el.max = fmt(max);
+})();
 
 function validaPiva(el){
   var v = el.value.replace(/\s/g,'');
