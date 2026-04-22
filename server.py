@@ -807,18 +807,6 @@ function fmtEu(n){
   return n.toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
-// Limita data cena a ±4 giorni da oggi
-(function(){
-  var el = document.getElementById('data_cena');
-  var today = new Date();
-  var fmt = function(d){
-    return d.toISOString().split('T')[0];
-  };
-  var min = new Date(today); min.setDate(today.getDate() - 4);
-  var max = new Date(today); max.setDate(today.getDate() + 4);
-  el.min = fmt(min);
-  el.max = fmt(max);
-})();
 
 function validaPiva(el){
   var v = el.value.replace(/\s/g,'');
