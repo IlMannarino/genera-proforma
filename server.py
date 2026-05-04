@@ -614,9 +614,7 @@ input.db-fill{background:#fdf8ee;border-color:#e8d5a0;color:#555}
     <div class="g2">
       <div class="field">
         <label>Partita IVA *</label>
-        <input name="partita_iva" id="partita_iva" required placeholder="es. 05178360961"
-               oninput="validaPiva(this)">
-        <span id="piva_err" style="display:none;color:#c0392b;font-size:11px;margin-top:4px"></span>
+        <input name="partita_iva" id="partita_iva" required>
       </div>
       <div class="field">
         <label>Codice Cliente</label>
@@ -808,18 +806,6 @@ function fmtEu(n){
 }
 
 
-function validaPiva(el){
-  var v = el.value.replace(/\s/g,'');
-  var err = document.getElementById('piva_err');
-  if(v.length > 0 && (v.length !== 11 || !/^\d{11}$/.test(v))){
-    err.textContent = 'La Partita IVA deve essere esattamente 11 cifre numeriche';
-    err.style.display = 'block';
-    el.style.borderColor = '#c0392b';
-  } else {
-    err.style.display = 'none';
-    el.style.borderColor = '';
-  }
-}
 
 function aggiornaCalcolo(){
   var cov = parseInt(document.getElementById('num_coperti').value)     || 0;
