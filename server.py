@@ -4,9 +4,10 @@ Generatore Proforma - Il Mannarino SRL
 Produzione: gunicorn server:app
 
 Variabili d'ambiente:
-  DATA_DIR          → cartella per counter.json  (default: cartella script)
-  N8N_SEARCH_URL    → webhook n8n per ricerca clienti BigQuery
-  N8N_STORAGE_URL   → webhook n8n per salvataggio PDF su OneDrive
+  DATA_DIR             → cartella per counter.json  (default: cartella script)
+  N8N_SEARCH_URL       → webhook n8n per ricerca clienti BigQuery
+  N8N_STORAGE_URL      → webhook n8n per salvataggio PDF su OneDrive
+  N8N_SEARCH_API_KEY   → API key per autenticare il webhook di ricerca (Authorization: Bearer)
 
 Contratto API n8n SEARCH (GET):
   Parametro:  ?q=testo
@@ -922,14 +923,13 @@ def search_clienti():
     if len(q) < 2:
         return jsonify([])
 
-    n8n_url = os.environ.get('N8N_SEARCH_URL', '')
-    if not n8n_url:
-        # N8N non ancora configurato → ritorna lista vuota (no errore)
-        return jsonify([])
+    n8n_url = os.environ.get('N8N_SEARCH_URL', 'https://manna23.app.n8n.cloud/webhook/proforma/cerca-clienti')
+    api_key = os.environ.get('N8N_SEARCH_API_KEY', 'mnr-015a8f7aec4beba891362940e6ae4910af0014c6')
 
     try:
         import requests as req
-        resp = req.get(n8n_url, params={'q': q}, timeout=5)
+        headers = {'Authorization': f'Bearer {api_key}'} if api_key else {}
+        resp = req.get(n8n_url, params={'q': q}, headers=headers, timeout=5)
         resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, list):
@@ -953,7 +953,7 @@ def genera():
     mimetype = 'application/pdf'
 
     # ── Notifica asincrona a n8n per storage ──
-    n8n_storage_url = os.environ.get('N8N_STORAGE_URL', '')
+    n8n_storage_url = os.environ.get('N8N_STORAGE_URL', 'https://manna23.app.n8n.cloud/webhook/proforma/salva-pdf')
     if n8n_storage_url:
         pdf_bytes = buf.getvalue()
 
